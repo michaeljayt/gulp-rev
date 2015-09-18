@@ -5,7 +5,6 @@ var through = require('through2');
 var objectAssign = require('object-assign');
 var file = require('vinyl-file');
 var revHash = require('rev-hash');
-var revPath = require('rev-path');
 var sortKeys = require('sort-keys');
 var modifyFilename = require('modify-filename');
 
@@ -40,6 +39,17 @@ function getManifestFile(opts, cb) {
 	});
 }
 
+
+function revPath (pth, hash) {
+	if (arguments.length !== 2) {
+		throw new Error('`path` and `hash` required');
+	}
+
+	return modifyFilename(pth, function (filename, ext) {
+		return filename + '_' + hash + ext;
+	});
+};
+
 function transformFilename(file) {
 	// save the old path for later
 	file.revOrigPath = file.path;
@@ -47,17 +57,14 @@ function transformFilename(file) {
 	file.revHash = revHash(file.contents);
 
 	file.path = modifyFilename(file.path, function (filename, extension) {
-		var extIndex = filename.indexOf('.');
 
-		filename = extIndex === -1 ?
-			revPath(filename, file.revHash) :
-			revPath(filename.slice(0, extIndex), file.revHash) + filename.slice(extIndex);
+		filename = revPath(filename, file.revHash)
 
 		return filename + extension;
 	});
 }
 
-var plugin = function () {
+var plugin = function (opts) {
 	var sourcemaps = [];
 	var pathMap = {};
 
